@@ -1,0 +1,119 @@
+import random
+import math
+import time
+
+def is_prime(n):
+    if n <= 1:
+        return False
+    if n <= 3:
+        return True
+    if n % 2 == 0 or n % 3 == 0:
+        return False
+    i = 5
+    while i * i <= n:
+        if n % i == 0 or n % (i + 2) == 0:
+            return False
+        i += 6
+    return True
+
+def generate_prime(bits):
+    while True:
+        num = random.getrandbits(bits)
+        if num % 2 != 0:
+            if is_prime(num):
+                return num
+
+def gcd(a, b):
+    while b != 0:
+        a, b = b, a % b
+    return a
+
+def extended_gcd(a, b):
+    if a == 0:
+        return b, 0, 1
+    else:
+        gcd, x, y = extended_gcd(b % a, a)
+        return gcd, y - (b // a) * x, x
+
+def generate_keys(bits):
+    start_time = time.perf_counter()
+    p = generate_prime(bits // 2)
+    q = generate_prime(bits // 2)
+    n = p * q
+    phi = (p - 1) * (q - 1)
+
+    e = random.randrange(1, phi)
+    while gcd(e, phi) != 1:
+        e = random.randrange(1, phi)
+
+    _, d, _ = extended_gcd(e, phi)
+    d %= phi
+    if d < 0:
+        d += phi
+    end_time = time.perf_counter()
+    return (n, e), (n, d), end_time - start_time
+
+def encrypt(message, public_key):
+    n, e = public_key
+    encrypted_message = pow(message, e, n)
+    return encrypted_message
+
+def decrypt(encrypted_message, private_key):
+    n, d = private_key
+    decrypted_message = pow(encrypted_message, d, n)
+    return decrypted_message
+
+
+def brutedecrypt(e, n, C, m):
+    d = 2
+    attempts = 0
+    while True:
+        if pow(C, d, n) == m:
+            return d, attempts
+        attempts += 1
+        d += 1
+
+def main():
+    bits = 16  # Key size
+    p = generate_prime(bits // 2)
+    q = generate_prime(bits // 2)
+    n = p * q
+    eul = (p - 1) * (q - 1)
+    e = 3
+    m = 11
+
+    
+    print("RSA Modulus (N):", n)
+    print()
+
+   
+    print("Brute Force Attack:")
+    
+    start_time = time.perf_counter()
+    public_key, private_key, key_gen_time = generate_keys(bits)
+    print("Public key (N, e):", public_key)
+    print("Private key (N, d):", private_key)
+    print("Key generation time:", key_gen_time, "seconds")
+    print()
+
+    C = pow(m, e, n)
+
+    d, attempts = brutedecrypt(e, n, C, m)
+    d = d % eul
+    M = pow(C, d, n)
+
+    print("Brute force results: ")
+    print(f"p is: {p} and q is: {q}, message is: {M}")
+    print(f"Brute force attack succeeded after {attempts} attempts! Private exponent d is: {d}")
+
+    message = 42
+    print("\nOriginal message:", message)
+    encrypted_message = encrypt(message, public_key)
+    print("Encrypted message:", encrypted_message)
+    decrypted_message = decrypt(encrypted_message, private_key)
+    print("Decrypted message:", decrypted_message)
+    end_time = time.perf_counter()
+    print(f"\nTotal execution time: {(end_time - start_time):.6f} seconds")
+
+if __name__ == "__main__":
+    main()
